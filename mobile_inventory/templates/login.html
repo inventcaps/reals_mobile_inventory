@@ -24,28 +24,18 @@
         border-radius: 20px; /* mas rounded para mas iOS feel */
         border: 1px solid rgba(255, 255, 255, 0.3); /* subtle border */
         }
-        .card img {
-        }
-
-
     </style>
 </head>
 <body class="bg-light">
-
    <div class="container d-flex justify-content-center align-items-center vh-100">
-    
-    <div class="card p-4 shadow-lg glass-card" style="width: 350px;">
-        
-        <!-- Client Logo -->
+    <div class="card p-3 shadow-lg glass-card" style="width: 300px;">
         <div class="text-center">
             <img src="{% static 'images/reals_logo-removebg-preview.png' %}" alt="logo" style="width:200px; height:auto;">
         </div>
         <h3 class="text-center mb-3">Admin Login</h3>
-        
         {% if error %}
         <div class="alert alert-danger">{{ error }}</div>
         {% endif %}
-        
         <form method="POST">
             {% csrf_token %}
             <div class="mb-3">
@@ -56,12 +46,13 @@
                 <label for="password" class="form-label">Password</label>
                 <input type="password" name="password" class="form-control" required>
             </div>
-            <button type="submit" class="btn w-100" style="background-color:#77B254; color:rgb(0, 0, 0); border:none;">
-                 Login
-            </button>
+            <div class="d-flex justify-content-center">
+                <button type="submit" class="btn" style="width:40%; background-color:#77B254; color:#000; border:none;">
+                    Login
+                </button>
+            </div>
         </form>
     </div>
 </div>
-
 </body>
 </html>

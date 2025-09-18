@@ -35,6 +35,7 @@ def dashboard(request):
         "raw_count": RawMaterialInventory.objects.count(),
         "sales_count": Sales.objects.count(),
         "expense_count": Expenses.objects.count(),
+        "log_count": HistoryLog.objects.count(),
     }
     return render(request, "dashboard.html", context)
 
@@ -53,6 +54,14 @@ def raw_stock(request):
     return render(request, "raw_stock.html", {"raws": raws})
 
 from .models import Sales
+
+from django.shortcuts import render
+from .models import HistoryLog
+
+def history_log_view(request):
+    logs = HistoryLog.objects.select_related("admin", "log_type").order_by("-log_date")
+    return render(request, "history_log.html", {"logs": logs})
+
 
 def sales_list(request):
     sales = Sales.objects.all().order_by('-date')  # pinakabago sa taas

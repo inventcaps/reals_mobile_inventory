@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="container mt-4">
-  <h3 class="mb-4">📊Reals Dashboard</h3>
+  <h3 class="mb-4">Reals Dashboard</h3>
 
   <div class="row">
     <!-- Product Stock -->
@@ -25,6 +25,19 @@
           <div class="card-body">
             <h5 class="card-title">🧾 Raw Materials</h5>
             <p class="card-text">{{ raw_count }} materials</p>
+          </div>
+        </div>
+      </a>
+    </div>
+
+
+    <!-- History Log -->
+    <div class="col-6 mb-3">
+      <a href="{% url 'history_log' %}" class="text-decoration-none">
+        <div class="card text-center shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">📜 History Log</h5>
+            <p class="card-text">{{ log_count }} entries</p>
           </div>
         </div>
       </a>

@@ -14,6 +14,8 @@ urlpatterns = [
     path('products/stock/', views.product_stock, name="product_stock"),
     path('raw/stock/', views.raw_stock, name="raw_stock"),
 
+    path('history/', views.history_log_view, name="history_log"),
+
     # sales & expenses
     path('sales/', views.sales_list, name="sales_list"),
     path('expenses/', views.expenses_list, name="expenses_list"),
