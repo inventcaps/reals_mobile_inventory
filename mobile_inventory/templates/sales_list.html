@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mt-4">
+<div class="container mt-4" style="padding-bottom: 100px;">
   <h3 class="mb-4">💸 Sales Records</h3>
+  
+  <div class="mb-3">
+    <input type="text" id="searchInput" class="form-control" placeholder="Search record...">
+  </div>
 
   <div class="table-responsive">
     <table class="table table-striped table-bordered">
@@ -32,6 +36,10 @@
     </table>
   </div>
 
-  <a href="{% url 'dashboard' %}" class="btn btn-secondary mt-3">⬅ Back to Dashboard</a>
+<!-- Floating Back Button -->
+<a href="{% url 'dashboard' %}" class="btn btn-secondary"
+   style="position: fixed; bottom: 20px; left: 20px; z-index: 1000;">
+   ← Back to Dashboard
+</a>
 </div>
 {% endblock %}
