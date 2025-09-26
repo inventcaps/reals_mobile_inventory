@@ -2,12 +2,9 @@
 {% block content %}
 <div class="container mt-4" style="padding-bottom: 100px;"> <!-- extra space sa ilalim -->
   <h3 class="mb-4">🧾 Raw Material Stock</h3>
-
-  <!-- Search bar -->
   <div class="mb-3">
       <input type="text" id="searchInput" class="form-control" placeholder="Search material...">
   </div>
-
   <div class="table-responsive">
     <table class="table table-striped table-bordered" id="rawTable">
       <thead class="table-dark">
@@ -30,7 +27,7 @@
             {% if r.total_stock <= r.reorder_threshold %}
               <span class="badge bg-danger">Low Stock</span>
             {% else %}
-              <span class="badge bg-success">In Stock</span>
+              <span class="badge bg-success">On Stock</span>
             {% endif %}
           </td>
         </tr>
@@ -46,8 +43,8 @@
 
 <!-- Floating Back Button -->
 <a href="{% url 'dashboard' %}" class="btn btn-secondary"
-   style="position: fixed; bottom: 20px; left: 20px; z-index: 1000;">
-   ← Back to Dashboard
+   style="position: fixed; bottom: 20px; left: 20px; z-index: 1000; background-color: black; color: white;">
+   ←Back
 </a>
 
 <!-- JS Search Function -->
@@ -57,10 +54,19 @@ document.getElementById("searchInput").addEventListener("keyup", function() {
     let rows = document.querySelectorAll("#rawTable tbody tr");
 
     rows.forEach(row => {
-        let materialID = row.cells[0].textContent.toLowerCase();
-        let materialName = row.cells[1].textContent.toLowerCase();
+        let materialID = row.cells[0].textContent.toLowerCase();       // Material ID
+        let materialName = row.cells[1].textContent.toLowerCase();     // Name
+        let totalStock = row.cells[2].textContent.toLowerCase();       // Total Stock
+        let reorderThreshold = row.cells[3].textContent.toLowerCase(); // Reorder Threshold
+        let status = row.cells[4].textContent.toLowerCase();           // Status (Low Stock / In Stock / Warning)
 
-        if (materialID.includes(filter) || materialName.includes(filter)) {
+        if (
+            materialID.includes(filter) ||
+            materialName.includes(filter) ||
+            totalStock.includes(filter) ||
+            reorderThreshold.includes(filter) ||
+            status.includes(filter)
+        ) {
             row.style.display = "";
         } else {
             row.style.display = "none";

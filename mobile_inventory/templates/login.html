@@ -16,6 +16,7 @@
                 #AED09E 50%,
                 #77B254 100%
             );
+            font-family: 'Poppins', sans-serif;
         }
         .glass-card {
         background: rgba(255, 255, 255, 0.6); /* semi-transparent white */
@@ -30,21 +31,21 @@
    <div class="container d-flex justify-content-center align-items-center vh-100">
     <div class="card p-3 shadow-lg glass-card" style="width: 300px;">
         <div class="text-center">
-            <img src="{% static 'images/reals_logo-removebg-preview.png' %}" alt="logo" style="width:200px; height:auto;">
+            <img src="{% static 'images/reals_logo-removebg-preview.png' %}" alt="logo" style="width:130px; height:auto;">
         </div>
-        <h3 class="text-center mb-3">Admin Login</h3>
+        <h3 class="text-center mb-3">Real's Inventory</h3>
         {% if error %}
         <div class="alert alert-danger">{{ error }}</div>
         {% endif %}
         <form method="POST">
             {% csrf_token %}
             <div class="mb-3">
-                <label for="username" class="form-label">Username</label>
-                <input type="text" name="username" class="form-control" required>
+                <label for="username" class="form-label" >Username</label>
+                <input type="text" name="username" class="form-control" required placeholder="Enter username">
             </div>
             <div class="mb-3">
                 <label for="password" class="form-label">Password</label>
-                <input type="password" name="password" class="form-control" required>
+                <input type="password" name="password" class="form-control" required placeholder="Enter password">
             </div>
             <div class="d-flex justify-content-center">
                 <button type="submit" class="btn" style="width:40%; background-color:#77B254; color:#000; border:none;">
