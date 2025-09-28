@@ -292,11 +292,10 @@ class RawMaterialInventory(models.Model):
 class RawMaterials(models.Model):
     id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=45)
-    size = models.ForeignKey('Sizes', models.DO_NOTHING)
-    unit = models.ForeignKey('SizeUnits', models.DO_NOTHING)
+    size = models.DecimalField(max_digits=10, decimal_places=2)  # numeric column
+    unit = models.ForeignKey('SizeUnits', models.DO_NOTHING)     # may unit_id talaga
     price_per_unit = models.DecimalField(max_digits=10, decimal_places=2)
     created_by_admin = models.ForeignKey(AuthUser, models.DO_NOTHING)
-    expiration_date = models.DateField(blank=True, null=True)
 
     class Meta:
         managed = False
@@ -304,6 +303,7 @@ class RawMaterials(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.size} {self.unit}) - ₱{self.price_per_unit}"
+
 
 class Sales(models.Model):
     id = models.BigAutoField(primary_key=True)

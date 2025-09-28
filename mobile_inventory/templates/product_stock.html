@@ -2,51 +2,61 @@
 {% block content %}
 <div class="container mt-4" style="padding-bottom: 100px;">
   <h3 class="mb-4">📦 Product Stock</h3>
+
+  <!-- Search Bar -->
   <div class="mb-3">
-      <input type="text" id="searchInput" class="form-control" placeholder="Search product...">
+    <input type="text" id="searchInput" class="form-control shadow-sm"
+           placeholder="Search product..."
+           style="border-radius: 12px; padding: 10px 14px;">
   </div>
-  <div class="table-responsive">
-    <table class="table table-striped table-bordered" id="productTable">
-      <thead class="table-dark">
-          <tr>
+
+  <!-- Card Wrapper -->
+  <div class="card shadow-lg border-0 rounded-4">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-striped table-bordered mb-0" id="productTable"
+               style="border-radius: 12px; overflow: hidden;">
+          <thead class="table-dark">
+            <tr>
               <th>Product</th>
               <th>Total Stock</th>
               <th>Restock Threshold</th>
               <th>Status</th> 
-          </tr>
-      </thead>
-      <tbody>
-          {% for item in products %}
-          <tr>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in products %}
+            <tr class="fade-in-row">
               <td>{{ item.product }}</td>
               <td>{{ item.total_stock }}</td>
               <td>{{ item.restock_threshold }}</td>
               <td>
-                  {% if item.total_stock > item.restock_threshold %}
-                      <span class="badge bg-success">On Stock</span>
-                  {% elif item.total_stock == item.restock_threshold %}
-                      <span class="badge bg-warning text-dark">Warning</span>
-                  {% else %}
-                      <span class="badge bg-danger">Low Stock</span>
-                  {% endif %}
+                {% if item.total_stock > item.restock_threshold %}
+                    <span class="badge bg-success">On Stock</span>
+                {% elif item.total_stock == item.restock_threshold %}
+                    <span class="badge bg-warning text-dark">Warning</span>
+                {% else %}
+                    <span class="badge bg-danger">Low Stock</span>
+                {% endif %}
               </td>
-          </tr>
-          {% empty %}
-          <tr>
+            </tr>
+            {% empty %}
+            <tr>
               <td colspan="4" class="text-center">No products found</td>
-          </tr>
-          {% endfor %}
-      </tbody>
-  </table>
-
-  </div> 
-
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Floating Back Button -->
-<a href="{% url 'dashboard' %}" class="btn btn-secondary"
-   style="position: fixed; bottom: 20px; left: 20px; z-index: 1000;">
-   ←Back
+<a href="{% url 'dashboard' %}" class="btn btn-secondary shadow-lg"
+   style="position: fixed; bottom: 20px; left: 20px; 
+          z-index: 1000; border-radius: 30px; padding: 10px 18px;">
+   ← Back
 </a>
 
 <!-- JS Search Function -->
@@ -56,9 +66,9 @@ document.getElementById("searchInput").addEventListener("keyup", function() {
     let rows = document.querySelectorAll("#productTable tbody tr");
 
     rows.forEach(row => {
-        let productName = row.cells[0].textContent.toLowerCase();   // product
-        let totalStock = row.cells[1].textContent.toLowerCase();    // total stock
-        let status = row.cells[row.cells.length - 1].textContent.toLowerCase(); // status
+        let productName = row.cells[0].textContent.toLowerCase();
+        let totalStock = row.cells[1].textContent.toLowerCase();
+        let status = row.cells[row.cells.length - 1].textContent.toLowerCase();
 
         if (
             productName.includes(filter) ||
@@ -72,4 +82,15 @@ document.getElementById("searchInput").addEventListener("keyup", function() {
     });
 });
 </script>
+
+<!-- Fade-in Animation -->
+<style>
+.fade-in-row {
+  animation: fadeIn 0.4s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
 {% endblock %}

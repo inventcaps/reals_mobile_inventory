@@ -3,67 +3,98 @@
 
 {% block content %}
 <div class="container mt-4">
-  <div class="row">
+  <div class="row g-3">
     <!-- Product Stock -->
-    <div class="col-6 mb-3">
-      <a href="{% url 'product_stock' %}" class="text-decoration-none">
-        <div class="card text-center shadow-sm">
-          <div class="card-body">
-            <h5 class="card-title">📦 Product Stock</h5>
-            <p class="card-text">{{ product_count }} items</p>
-          </div>
+    <div class="col-6">
+      <a href="{% url 'product_stock' %}" class="dashboard-link">
+        <div class="ios-card">
+          <h5>📦 Product Stock</h5>
+          <p>{{ product_count }} items</p>
         </div>
       </a>
     </div>
 
     <!-- Raw Material Stock -->
-    <div class="col-6 mb-3">
-      <a href="{% url 'raw_stock' %}" class="text-decoration-none">
-        <div class="card text-center shadow-sm">
-          <div class="card-body">
-            <h5 class="card-title">🧾 Raw Materials</h5>
-            <p class="card-text">{{ raw_count }} materials</p>
-          </div>
+    <div class="col-6">
+      <a href="{% url 'raw_stock' %}" class="dashboard-link">
+        <div class="ios-card">
+          <h5>🧾 Raw Materials</h5>
+          <p>{{ raw_count }} materials</p>
         </div>
       </a>
     </div>
 
-
     <!-- History Log -->
-    <div class="col-6 mb-3">
-      <a href="{% url 'history_log' %}" class="text-decoration-none">
-        <div class="card text-center shadow-sm">
-          <div class="card-body">
-            <h5 class="card-title">📜 History Log</h5>
-            <p class="card-text">{{ log_count }} entries</p>
-          </div>
+    <div class="col-6">
+      <a href="{% url 'history_log' %}" class="dashboard-link">
+        <div class="ios-card">
+          <h5>📜 History Log</h5>
+          <p>{{ log_count }} entries</p>
         </div>
       </a>
     </div>
 
     <!-- Sales -->
-    <div class="col-6 mb-3">
-      <a href="{% url 'sales_list' %}" class="text-decoration-none">
-        <div class="card text-center shadow-sm">
-          <div class="card-body">
-            <h5 class="card-title">💸 Sales</h5>
-            <p class="card-text">{{ sales_count }} records</p>
-          </div>
+    <div class="col-6">
+      <a href="{% url 'sales_list' %}" class="dashboard-link">
+        <div class="ios-card">
+          <h5>💸 Sales</h5>
+          <p>{{ sales_count }} records</p>
         </div>
       </a>
     </div>
 
     <!-- Expenses -->
-    <div class="col-6 mb-3">
-      <a href="{% url 'expenses_list' %}" class="text-decoration-none">
-        <div class="card text-center shadow-sm">
-          <div class="card-body">
-            <h5 class="card-title">💰 Expenses</h5>
-            <p class="card-text">{{ expense_count }} records</p>
-          </div>
+    <div class="col-6">
+      <a href="{% url 'expenses_list' %}" class="dashboard-link">
+        <div class="ios-card">
+          <h5>💰 Expenses</h5>
+          <p>{{ expense_count }} records</p>
         </div>
       </a>
     </div>
   </div>
 </div>
+
+<style>
+  .dashboard-link {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .ios-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-radius: 18px;
+    padding: 1.2rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: all 0.25s ease;
+  }
+
+  .ios-card h5 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: #2f3e46;
+  }
+
+  .ios-card p {
+    margin: 0.3rem 0 0;
+    font-size: 0.9rem;
+    color: #555;
+  }
+
+  /* smooth hover/tap */
+  .ios-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  }
+
+  /* responsive layout */
+  @media (max-width: 576px) {
+    .col-6 { width: 100%; }
+  }
+</style>
 {% endblock %}
