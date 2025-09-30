@@ -6,14 +6,26 @@ def login_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
+        remember = request.POST.get("remember")  # kukunin natin yung checkbox
+
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
             login(request, user)
+
+            if remember:
+                # Session lasts 2 weeks (1209600 sec)
+                request.session.set_expiry(1209600)
+            else:
+                # Session ends when browser closes
+                request.session.set_expiry(0)
+
             return redirect("dashboard")
         else:
             return render(request, "login.html", {"error": "Invalid username or password"})
+    
     return render(request, "login.html")
+
 
 
 def logout_view(request):
