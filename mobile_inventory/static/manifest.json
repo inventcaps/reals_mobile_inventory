@@ -1,0 +1,27 @@
+{
+  "name": "Real's Mobile Inventory",
+  "short_name": "Real's Inventory",
+  "description": "Mobile inventory management system for products and raw materials",
+  "start_url": "/dashboard/",
+  "display": "standalone",
+  "background_color": "#77B254",
+  "theme_color": "#77B254",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/images/reals_logo-removebg-preview.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/images/reals_logo-removebg-preview.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

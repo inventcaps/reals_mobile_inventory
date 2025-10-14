@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 
 def login_view(request):
     if request.method == "POST":
@@ -33,14 +34,9 @@ def logout_view(request):
     return redirect("login")
 
 
+from .models import ProductInventory, RawMaterialInventory, Sales, Expenses, HistoryLog
+
 @login_required(login_url="login")
-def dashboard(request):
-    return render(request, "dashboard.html")
-
-
-from django.shortcuts import render
-from .models import ProductInventory, RawMaterialInventory, Sales, Expenses
-
 def dashboard(request):
     context = {
         "product_count": ProductInventory.objects.count(),
@@ -51,36 +47,40 @@ def dashboard(request):
     }
     return render(request, "dashboard.html", context)
 
-from django.shortcuts import render
-from .models import ProductInventory
-
+@login_required(login_url="login")
 def product_stock(request):
     products = ProductInventory.objects.select_related("product").all()
     return render(request, "product_stock.html", {"products": products})
 
 
-from .models import RawMaterialInventory
-
+@login_required(login_url="login")
 def raw_stock(request):
     raws = RawMaterialInventory.objects.select_related("material").all()
     return render(request, "raw_stock.html", {"raws": raws})
 
-from .models import Sales
 
-from django.shortcuts import render
-from .models import HistoryLog
-
+@login_required(login_url="login")
 def history_log_view(request):
-    logs = HistoryLog.objects.select_related("admin", "log_type").order_by("-log_date")
-    return render(request, "history_log.html", {"logs": logs})
+    logs_qs = HistoryLog.objects.select_related("admin", "log_type").order_by("-log_date")
+    paginator = Paginator(logs_qs, 20)
+    page_number = request.GET.get("page")
+    logs_page = paginator.get_page(page_number)
+    return render(request, "history_log.html", {"logs": logs_page})
 
 
+@login_required(login_url="login")
 def sales_list(request):
-    sales = Sales.objects.all().order_by('-date')  # pinakabago sa taas
-    return render(request, "sales_list.html", {"sales": sales})
+    sales_qs = Sales.objects.all().order_by('-date')
+    paginator = Paginator(sales_qs, 20)
+    page_number = request.GET.get("page")
+    sales_page = paginator.get_page(page_number)
+    return render(request, "sales_list.html", {"sales": sales_page})
 
-from .models import Expenses
 
+@login_required(login_url="login")
 def expenses_list(request):
-    expenses = Expenses.objects.all().order_by('-date')
-    return render(request, "expenses_list.html", {"expenses": expenses})
+    expenses_qs = Expenses.objects.all().order_by('-date')
+    paginator = Paginator(expenses_qs, 20)
+    page_number = request.GET.get("page")
+    expenses_page = paginator.get_page(page_number)
+    return render(request, "expenses_list.html", {"expenses": expenses_page})

@@ -8,7 +8,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
-from django.contrib.auth.decorators import login_required
 
 class AuthGroup(models.Model):
     name = models.CharField(unique=True, max_length=150)
