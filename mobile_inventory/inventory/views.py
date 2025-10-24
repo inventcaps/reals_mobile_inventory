@@ -38,7 +38,7 @@ def logout_view(request):
     return redirect("login")
 
 
-from .models import ProductInventory, RawMaterialInventory, Sales, Expenses, HistoryLog
+from .models import ProductInventory, RawMaterialInventory, Sales, Expenses, HistoryLog, StockChanges, Products, RawMaterials
 
 @login_required(login_url="login")
 def dashboard(request):
@@ -88,6 +88,49 @@ def expenses_list(request):
     page_number = request.GET.get("page")
     expenses_page = paginator.get_page(page_number)
     return render(request, "expenses_list.html", {"expenses": expenses_page})
+
+
+@login_required(login_url="login")
+def stock_changes(request):
+    """Display stock changes with pagination"""
+    # Get all stock changes ordered by date (newest first)
+    changes_qs = StockChanges.objects.select_related('created_by_admin').order_by('-date')
+    
+    # Add item names to each change
+    changes_list = []
+    for change in changes_qs:
+        item_name = "Unknown Item"
+        if change.item_type == 'product':
+            try:
+                product = Products.objects.select_related(
+                    'product_type', 'variant', 'size', 'size_unit'
+                ).get(id=change.item_id)
+                item_name = f"{product.product_type.name} - {product.variant.name} ({product.size.size_label} {product.size_unit.unit_name})"
+            except Products.DoesNotExist:
+                item_name = f"Product ID {change.item_id} (Deleted)"
+        elif change.item_type == 'raw_material':
+            try:
+                material = RawMaterials.objects.select_related('unit').get(id=change.item_id)
+                item_name = f"{material.name} ({material.size} {material.unit.unit_name})"
+            except RawMaterials.DoesNotExist:
+                item_name = f"Raw Material ID {change.item_id} (Deleted)"
+        
+        changes_list.append({
+            'id': change.id,
+            'item_name': item_name,
+            'item_type': change.item_type,
+            'quantity_change': change.quantity_change,
+            'category': change.category,
+            'date': change.date,
+            'created_by': change.created_by_admin.username
+        })
+    
+    # Paginate
+    paginator = Paginator(changes_list, 20)
+    page_number = request.GET.get('page')
+    changes_page = paginator.get_page(page_number)
+    
+    return render(request, "stock_changes.html", {"changes": changes_page})
 
 
 @login_required(login_url="login")

@@ -13,6 +13,7 @@ urlpatterns = [
     # stock
     path('products/stock/', views.product_stock, name="product_stock"),
     path('raw/stock/', views.raw_stock, name="raw_stock"),
+    path('stock/changes/', views.stock_changes, name="stock_changes"),
 
     path('history/', views.history_log_view, name="history_log"),
 
