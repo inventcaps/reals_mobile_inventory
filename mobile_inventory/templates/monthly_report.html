@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}Monthly Business Report{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex align-items-center mb-3">
+    <a href="{% url 'dashboard' %}" class="back-button">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <h4 class="report-header mb-0 ms-2">📊 Monthly Business Report</h4>
+  </div>
+  
+  <!-- Summary Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-4">
+      <div class="summary-card revenue-card">
+        <p class="card-label">Total Revenue</p>
+        <h3 class="card-value">₱<span id="totalRevenue">0</span></h3>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="summary-card profit-card">
+        <p class="card-label">Total Profit</p>
+        <h3 class="card-value">₱<span id="totalProfit">0</span></h3>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="summary-card avg-card">
+        <p class="card-label">Avg Profit</p>
+        <h3 class="card-value">₱<span id="avgProfit">0</span></h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monthly Data Table -->
+  <div class="table-container">
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Revenue</th>
+          <th>Expenses</th>
+          <th>Profit</th>
+          <th>Trend</th>
+        </tr>
+      </thead>
+      <tbody id="reportTableBody">
+        <tr>
+          <td colspan="5" class="text-center">Loading...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  .back-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(15px);
+    border-radius: 50%;
+    color: #2f3e46;
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+  }
+
+  .back-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    color: #2f3e46;
+  }
+
+  .report-header {
+    font-weight: 700;
+    color: #2f3e46;
+  }
+
+  .summary-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(15px);
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  .revenue-card {
+    border-left: 4px solid #4ade80;
+  }
+
+  .profit-card {
+    border-left: 4px solid #60a5fa;
+  }
+
+  .avg-card {
+    border-left: 4px solid #a78bfa;
+  }
+
+  .card-label {
+    font-size: 0.75rem;
+    color: #666;
+    margin: 0 0 0.3rem 0;
+    font-weight: 500;
+  }
+
+  .card-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+    color: #2f3e46;
+  }
+
+  .table-container {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(15px);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    overflow-x: auto;
+  }
+
+  .report-table {
+    width: 100%;
+    font-size: 0.85rem;
+    border-collapse: collapse;
+  }
+
+  .report-table thead th {
+    background: #f3f4f6;
+    padding: 0.75rem 0.5rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 2px solid #e5e7eb;
+  }
+
+  .report-table tbody td {
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    color: #4b5563;
+  }
+
+  .trend-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+
+  .trend-up {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .trend-down {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .trend-neutral {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+
+  .change-positive {
+    color: #16a34a;
+    font-weight: 600;
+  }
+
+  .change-negative {
+    color: #dc2626;
+    font-weight: 600;
+  }
+
+  @media (max-width: 576px) {
+    .col-4 { width: 100%; margin-bottom: 0.5rem; }
+    .card-value { font-size: 1.3rem; }
+    .report-table { font-size: 0.75rem; }
+    .report-table thead th,
+    .report-table tbody td {
+      padding: 0.5rem 0.3rem;
+    }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  fetch('{% url "monthly_report_data" %}')
+    .then(response => response.json())
+    .then(data => {
+      // Update summary cards
+      document.getElementById('totalRevenue').textContent = data.summary.total_revenue.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      document.getElementById('totalProfit').textContent = data.summary.total_profit.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      document.getElementById('avgProfit').textContent = data.summary.avg_profit.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+      // Populate table
+      const tbody = document.getElementById('reportTableBody');
+      tbody.innerHTML = '';
+      
+      data.monthly_data.forEach((row, index) => {
+        const tr = document.createElement('tr');
+        
+        // Determine trend
+        let trendBadge = '';
+        if (row.revenue_change !== null && row.profit_change !== null) {
+          if (row.revenue_change > 0 && row.profit_change > 0) {
+            trendBadge = '<span class="trend-badge trend-up">↑ Increased</span>';
+          } else if (row.revenue_change < 0 || row.profit_change < 0) {
+            trendBadge = '<span class="trend-badge trend-down">↓ Decreased</span>';
+          } else {
+            trendBadge = '<span class="trend-badge trend-neutral">- Stable</span>';
+          }
+        } else {
+          trendBadge = '<span class="trend-badge trend-neutral">-</span>';
+        }
+        
+        tr.innerHTML = `
+          <td><strong>${row.month}</strong></td>
+          <td>₱${parseFloat(row.revenue).toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
+          <td>₱${parseFloat(row.expenses).toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
+          <td>₱${parseFloat(row.profit).toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
+          <td>${trendBadge}</td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+    })
+    .catch(error => {
+      console.error('Error fetching report data:', error);
+      document.getElementById('reportTableBody').innerHTML = '<tr><td colspan="5" class="text-center">Error loading data</td></tr>';
+    });
+});
+</script>
+{% endblock %}

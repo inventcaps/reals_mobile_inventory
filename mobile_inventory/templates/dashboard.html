@@ -3,7 +3,8 @@
 
 {% block content %}
 <div class="container mt-4">
-  <div class="row g-3">
+  <!-- Quick Stats Cards -->
+  <div class="row g-3 mb-4">
     <!-- Product Stock -->
     <div class="col-6">
       <a href="{% url 'product_stock' %}" class="dashboard-link">
@@ -53,6 +54,16 @@
         </div>
       </a>
     </div>
+
+    <!-- Monthly Business Report -->
+    <div class="col-6">
+      <a href="{% url 'monthly_report' %}" class="dashboard-link">
+        <div class="ios-card">
+          <h5>📊 Monthly Report</h5>
+          <p>View analytics</p>
+        </div>
+      </a>
+    </div>
   </div>
 </div>
 
@@ -86,13 +97,11 @@
     color: #555;
   }
 
-  /* smooth hover/tap */
   .ios-card:hover {
     transform: translateY(-4px) scale(1.02);
     box-shadow: 0 8px 20px rgba(0,0,0,0.15);
   }
 
-  /* responsive layout */
   @media (max-width: 576px) {
     .col-6 { width: 100%; }
   }
