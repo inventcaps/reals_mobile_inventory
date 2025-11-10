@@ -38,7 +38,7 @@ def logout_view(request):
     return redirect("login")
 
 
-from .models import ProductInventory, RawMaterialInventory, Sales, Expenses, HistoryLog, StockChanges, Products, RawMaterials
+from .models import ProductInventory, RawMaterialInventory, Sales, Expenses, HistoryLog, StockChanges, Products, RawMaterials, AuthUser
 
 @login_required(login_url="login")
 def dashboard(request):
@@ -235,3 +235,50 @@ def monthly_report_data(request):
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required(login_url="login")
+def user_activity(request):
+    """Display list of users with their login/logout activity"""
+    from django.contrib.sessions.models import Session
+    from django.utils import timezone
+    
+    # Get all users
+    users = AuthUser.objects.all().order_by('username')
+    
+    # Build user activity data
+    user_list = []
+    for user in users:
+        # Get last login
+        last_login = user.last_login
+        
+        # Check if user is currently logged in by checking active sessions
+        is_active = False
+        last_logout = None
+        
+        # Get all sessions
+        active_sessions = Session.objects.filter(expire_date__gte=timezone.now())
+        for session in active_sessions:
+            session_data = session.get_decoded()
+            if session_data.get('_auth_user_id') == str(user.id):
+                is_active = True
+                break
+        
+        # Determine status
+        if not user.is_active:
+            status = 'Inactive'
+        elif is_active:
+            status = 'Active'
+        else:
+            status = 'Logged Out'
+        
+        user_list.append({
+            'username': user.username,
+            'email': user.email,
+            'status': status,
+            'last_login': last_login,
+            'last_logout': last_logout,
+            'is_active': user.is_active
+        })
+    
+    return render(request, "user_activity.html", {"users": user_list})
