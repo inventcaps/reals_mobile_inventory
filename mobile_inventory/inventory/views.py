@@ -4,37 +4,94 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Sum, Count
 from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_protect
 import psycopg2
 from decimal import Decimal
+import logging
 
+# Set up logging
+logger = logging.getLogger(__name__)
+
+@require_http_methods(["GET", "POST"])
+@csrf_protect
 def login_view(request):
+    """
+    Enhanced login view with security features:
+    - Input validation
+    - Logging of login attempts
+    - Session management with "Remember Me"
+    - CSRF protection
+    """
     if request.method == "POST":
-        username = request.POST.get("username")
-        password = request.POST.get("password")
-        remember = request.POST.get("remember")  # kukunin natin yung checkbox
-
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "")
+        remember = request.POST.get("remember")
+        
+        # Input validation
+        if not username or not password:
+            logger.warning(f"Login attempt with missing credentials from IP: {get_client_ip(request)}")
+            return render(request, "login.html", {
+                "error": "Username and password are required"
+            })
+        
+        # Authenticate user
         user = authenticate(request, username=username, password=password)
-
+        
         if user is not None:
+            # Check if user is active
+            if not user.is_active:
+                logger.warning(f"Login attempt by inactive user: {username} from IP: {get_client_ip(request)}")
+                return render(request, "login.html", {
+                    "error": "Your account is inactive. Please contact administrator."
+                })
+            
+            # Login successful
             login(request, user)
-
+            
+            # Set session expiry based on "Remember Me"
             if remember:
                 # Session lasts 2 weeks (1209600 sec)
                 request.session.set_expiry(1209600)
             else:
                 # Session ends when browser closes
                 request.session.set_expiry(0)
-
+            
+            # Log successful login
+            logger.info(f"Successful login: {username} from IP: {get_client_ip(request)}")
+            
             return redirect("dashboard")
         else:
-            return render(request, "login.html", {"error": "Invalid username or password"})
+            # Log failed login attempt
+            logger.warning(f"Failed login attempt for username: {username} from IP: {get_client_ip(request)}")
+            return render(request, "login.html", {
+                "error": "Invalid username or password"
+            })
     
     return render(request, "login.html")
 
 
+def get_client_ip(request):
+    """
+    Get client IP address from request
+    Useful for logging and rate limiting
+    """
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
 
+
+@require_http_methods(["POST"])
 def logout_view(request):
+    """
+    Enhanced logout view with logging
+    """
+    username = request.user.username if request.user.is_authenticated else "Anonymous"
     logout(request)
+    logger.info(f"User logged out: {username}")
     return redirect("login")
 
 

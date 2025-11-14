@@ -17,6 +17,9 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
+# Railway-specific configuration
+RAILWAY_ENVIRONMENT = os.getenv('RAILWAY_ENVIRONMENT', 'development')
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -65,63 +68,46 @@ WSGI_APPLICATION = 'mobile_inventory.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 
+# Database Configuration using Environment Variables
+# For local development, use DB_* variables
+# For production, use PROD_DB_* variables
+# Use local database for development, production database only when explicitly set
+if DEBUG:
+    # Local development - use local PostgreSQL
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DB_NAME', default='reals_local'),
+            'USER': config('DB_USER', default='postgres'),
+            'PASSWORD': config('DB_PASSWORD', default='admin'),
+            'HOST': config('DB_HOST', default='localhost'),
+            'PORT': config('DB_PORT', default='5432'),
+        }
+    }
+else:
+    # Production - use Supabase or production database
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('PROD_DB_NAME', default='postgres'),
+            'USER': config('PROD_DB_USER', default='postgres'),
+            'PASSWORD': config('PROD_DB_PASSWORD'),
+            'HOST': config('PROD_DB_HOST'),
+            'PORT': config('PROD_DB_PORT', default='5432'),
+        }
+    }
+
+
 # DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'postgres',
-#         'USER': 'postgres',
-#         'PASSWORD': 'Reals_db_123',
-#         'HOST': 'db.rczsumkmhoxjaycvggzt.supabase.co',
-#         'PORT': '5432',
-#     }
-# }
-
-DATABASES = {
-   'default': {
-       'ENGINE': 'django.db.backends.postgresql',
-       'NAME': 'postgres',
-       'USER': 'postgres',
-       'PASSWORD': 'Inventcaps_2025',
-       'HOST': 'db.bmpwrztfukjnzdubtjox.supabase.co',
-       'PORT': '5432',
-   }
-}
-
-#DATABASES = {
-#    'default': {
-#        'ENGINE': 'django.db.backends.postgresql',
-#        'NAME': 'reals_local',
-#        'USER': 'postgres',
-#        'PASSWORD': 'admin',
-#        'HOST': 'localhost',
-#        'PORT': '5432',
-#    }
-#}
-
-#DATABASES = {
-#    'default': {
-#        'ENGINE': 'django.db.backends.postgresql',
-#        'NAME': config('DB_NAME', default='reals_local'),
-#        'USER': config('DB_USER', default='postgres'),
-#        'PASSWORD': config('DB_PASSWORD', default='admin'),
-#        'HOST': config('DB_HOST', default='localhost'),
-#        'PORT': config('DB_PORT', default='5432'),
-#        'OPTIONS': {
-#            'sslmode': 'disable',
-#        },
-#    }
-#}
-
-#DATABASES = {
 #    'default': {
 #        'ENGINE': 'django.db.backends.postgresql',
 #        'NAME': 'postgres',
 #        'USER': 'postgres',
-#        'PASSWORD': 'Reals_db_123',
-#        'HOST': 'db.rczsumkmhoxjaycvggzt.supabase.co',
+#        'PASSWORD': 'Reals_DB_123',
+#        'HOST': 'db.ynmwkydtjzqppyecqhux.supabase.co',
 #        'PORT': '5432',
 #    }
-#}
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
