@@ -66,18 +66,7 @@ WSGI_APPLICATION = 'mobile_inventory.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-
-# Database Configuration
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'Reals_DB_123',
-        'HOST': 'db.ynmwkydtjzqppyecqhux.supabase.co',
-        'PORT': '5432',
-    }
-}
+#
 
 
 # DATABASES = {
