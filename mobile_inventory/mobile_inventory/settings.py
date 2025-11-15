@@ -67,34 +67,17 @@ WSGI_APPLICATION = 'mobile_inventory.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 
-# Database Configuration using Environment Variables
-# For local development, use DB_* variables
-# For production, use PROD_DB_* variables
-# Use local database for development, production database only when explicitly set
-if DEBUG:
-    # Local development - use local PostgreSQL
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': config('DB_NAME', default='reals_local'),
-            'USER': config('DB_USER', default='postgres'),
-            'PASSWORD': config('DB_PASSWORD', default='admin'),
-            'HOST': config('DB_HOST', default='localhost'),
-            'PORT': config('DB_PORT', default='5432'),
-        }
+# Database Configuration
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres',
+        'PASSWORD': 'Reals_DB_123',
+        'HOST': 'db.ynmwkydtjzqppyecqhux.supabase.co',
+        'PORT': '5432',
     }
-else:
-    # Production - use Supabase or production database
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': config('PROD_DB_NAME', default='postgres'),
-            'USER': config('PROD_DB_USER', default='postgres'),
-            'PASSWORD': config('PROD_DB_PASSWORD', default='Reals_DB_123'),
-            'HOST': config('PROD_DB_HOST', default='db.ynmwkydtjzqppyecqhux.supabase.co'),
-            'PORT': config('PROD_DB_PORT', default='5432'),
-        }
-    }
+}
 
 
 # DATABASES = {
