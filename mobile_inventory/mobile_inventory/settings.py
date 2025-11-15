@@ -90,8 +90,8 @@ else:
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': config('PROD_DB_NAME', default='postgres'),
             'USER': config('PROD_DB_USER', default='postgres'),
-            'PASSWORD': config('PROD_DB_PASSWORD'),
-            'HOST': config('PROD_DB_HOST'),
+            'PASSWORD': config('PROD_DB_PASSWORD', default='Reals_DB_123'),
+            'HOST': config('PROD_DB_HOST', default='db.ynmwkydtjzqppyecqhux.supabase.co'),
             'PORT': config('PROD_DB_PORT', default='5432'),
         }
     }
