@@ -1,11 +1,11 @@
 [phases.setup]
-nixPkgs = ["python310"]
+nixPkgs = ["python310", "postgresql"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = ["pip install --upgrade pip", "pip install -r requirements.txt"]
 
 [phases.build]
-cmds = ["python manage.py collectstatic --noinput"]
+cmds = ["python manage.py collectstatic --noinput --clear"]
 
 [start]
-cmd = "gunicorn mobile_inventory.wsgi --bind 0.0.0.0:$PORT"
+cmd = "gunicorn mobile_inventory.wsgi:application --bind 0.0.0.0:$PORT --workers 4 --timeout 120"

@@ -61,8 +61,6 @@ TEMPLATES = [
     },
 ]
 
-#test
-
 WSGI_APPLICATION = 'mobile_inventory.wsgi.application'
 
 # Database
