@@ -84,7 +84,7 @@ def get_client_ip(request):
     return ip
 
 
-@require_http_methods(["POST"])
+@require_http_methods(["GET", "POST"])
 def logout_view(request):
     """
     Enhanced logout view with logging
