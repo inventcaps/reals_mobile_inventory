@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 from decouple import config, Csv
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -66,20 +67,16 @@ WSGI_APPLICATION = 'mobile_inventory.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'postgres',
-#         'USER': 'postgres',
-#         'PASSWORD': 'Reals_DB_123',
-#         'HOST': 'aws-1-us-east-1.pooler.supabase.com',
-#         'PORT': '6543',
-#         'OPTIONS': {
-#             'sslmode': 'require',
-#             'connect_timeout': 10,
-#         }
-#     }
-# }
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://postgres:Reals_DB_123@aws-1-us-east-1.pooler.supabase.com:6543/postgres')
+
+DATABASES = {
+    'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)
+}
+
+# Add SSL requirement for Supabase
+DATABASES['default']['OPTIONS'] = {
+    'sslmode': 'require',
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
