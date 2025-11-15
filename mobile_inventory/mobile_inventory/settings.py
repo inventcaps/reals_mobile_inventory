@@ -74,6 +74,10 @@ DATABASES = {
         'PASSWORD': 'Reals_DB_123',
         'HOST': 'aws-1-us-east-1.pooler.supabase.com',
         'PORT': '6543',
+        'OPTIONS': {
+            'sslmode': 'require',
+            'connect_timeout': 10,
+        }
     }
 }
 
