@@ -11,11 +11,16 @@
   </div>
 
   <!-- Search Bar -->
-  <div class="mb-3">
-    <input type="text" id="searchInput" class="form-control shadow-sm"
-           placeholder="Search product..."
-           style="border-radius: 12px; padding: 10px 14px;">
-  </div>
+  <form method="get" class="mb-3" data-auto-submit>
+    <div class="input-group shadow-sm" style="border-radius: 12px; overflow: hidden;">
+      <span class="input-group-text bg-white border-0">🔍</span>
+      <input type="text"
+             name="q"
+             value="{{ search_query }}"
+             class="form-control border-0"
+             placeholder="Search product...">
+    </div>
+  </form>
 
   <!-- Card Wrapper -->
   <div class="card shadow-lg border-0 rounded-4">
@@ -32,15 +37,15 @@
             </tr>
           </thead>
           <tbody>
-            {% for item in products %}
+            {% for product in products %}
             <tr class="fade-in-row">
-              <td>{{ item.product }}</td>
-              <td>{{ item.total_stock }}</td>
-              <td>{{ item.restock_threshold }}</td>
+              <td>{{ product.product }}</td>
+              <td>{{ product.total_stock }}</td>
+              <td>{{ product.restock_threshold }}</td>
               <td>
-                {% if item.total_stock > item.restock_threshold %}
+                {% if product.total_stock > product.restock_threshold %}
                     <span class="badge bg-success">On Stock</span>
-                {% elif item.total_stock == item.restock_threshold %}
+                {% elif product.total_stock == product.restock_threshold %}
                     <span class="badge bg-warning text-dark">Warning</span>
                 {% else %}
                     <span class="badge bg-danger">Low Stock</span>
@@ -57,30 +62,25 @@
       </div>
     </div>
   </div>
+
+  {% include "components/pagination.html" with page_obj=products paginator=products.paginator is_paginated=products.has_other_pages %}
+
 </div>
 
-<!-- JS Search Function -->
+<!-- Auto-submit Search -->
 <script>
-document.getElementById("searchInput").addEventListener("keyup", function() {
-    let filter = this.value.toLowerCase();
-    let rows = document.querySelectorAll("#productTable tbody tr");
-
-    rows.forEach(row => {
-        let productName = row.cells[0].textContent.toLowerCase();
-        let totalStock = row.cells[1].textContent.toLowerCase();
-        let status = row.cells[row.cells.length - 1].textContent.toLowerCase();
-
-        if (
-            productName.includes(filter) ||
-            totalStock.includes(filter) ||
-            status.includes(filter)
-        ) {
-            row.style.display = "";
-        } else {
-            row.style.display = "none";
-        }
-    });
-});
+(function() {
+  const form = document.querySelector('form[data-auto-submit]');
+  if (!form) return;
+  const input = form.querySelector('input[name="q"]');
+  let debounce;
+  input?.addEventListener('input', function() {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => {
+      form.submit();
+    }, 400);
+  });
+})();
 </script>
 
 <!-- Fade-in Animation -->

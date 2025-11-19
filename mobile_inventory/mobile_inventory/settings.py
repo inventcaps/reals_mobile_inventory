@@ -18,6 +18,11 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,.railway.app,realsmobileinventory-production.up.railway.app', cast=Csv())
 
+if DEBUG:
+    for host in ['127.0.0.1', 'localhost']:
+        if host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(host)
+
 # Railway-specific configuration
 RAILWAY_ENVIRONMENT = os.getenv('RAILWAY_ENVIRONMENT', 'development')
 
@@ -67,16 +72,31 @@ WSGI_APPLICATION = 'mobile_inventory.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://postgres:Reals_DB_123@aws-1-us-east-1.pooler.supabase.com:6543/postgres')
+if DEBUG:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DB_NAME', default='postgres'),
+            'USER': config('DB_USER', default='postgres.ynmwkydtjzqppyecqhux'),
+            'PASSWORD': config('DB_PASSWORD', default='Reals_DB_123'),
+            'HOST': config('DB_HOST', default='aws-1-us-east-1.pooler.supabase.com'),
+            'PORT': config('DB_PORT', default=6543, cast=int),
+            'OPTIONS': {
+                'sslmode': 'require',
+            }
+        }
+    }
+else:
+    DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://postgres:Reals_DB_123@aws-1-us-east-1.pooler.supabase.com:6543/postgres')
 
-DATABASES = {
-    'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)
-}
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)
+    }
 
-# Add SSL requirement for Supabase
-DATABASES['default']['OPTIONS'] = {
-    'sslmode': 'require',
-}
+    # Add SSL requirement for Supabase
+    DATABASES['default']['OPTIONS'] = {
+        'sslmode': 'require',
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

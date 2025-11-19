@@ -47,6 +47,8 @@
       </div>
     </div>
   </div>
+
+  {% include "components/pagination.html" with page_obj=logs paginator=logs.paginator is_paginated=logs.has_other_pages %}
 </div>
 
 <!-- 🔍 Search Script -->

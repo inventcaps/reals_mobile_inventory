@@ -256,6 +256,7 @@ class Products(models.Model):
     date_created = models.DateTimeField(default=timezone.now)
     description = models.TextField(blank=True, null=True)
     created_by_admin = models.ForeignKey(AuthUser, models.DO_NOTHING)
+    is_archived = models.BooleanField(db_column='is_archived')
 
     class Meta:
         managed = False
@@ -295,6 +296,7 @@ class RawMaterials(models.Model):
     unit = models.ForeignKey('SizeUnits', models.DO_NOTHING)     # may unit_id talaga
     price_per_unit = models.DecimalField(max_digits=10, decimal_places=2)
     created_by_admin = models.ForeignKey(AuthUser, models.DO_NOTHING)
+    is_archived = models.BooleanField(db_column='is_archived', default=False)
 
     class Meta:
         managed = False

@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Q
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_protect
@@ -100,8 +100,8 @@ from .models import ProductInventory, RawMaterialInventory, Sales, Expenses, His
 @login_required(login_url="login")
 def dashboard(request):
     context = {
-        "product_count": ProductInventory.objects.count(),
-        "raw_count": RawMaterialInventory.objects.count(),
+        "product_count": ProductInventory.objects.filter(product__is_archived=False).count(),
+        "raw_count": RawMaterialInventory.objects.filter(material__is_archived=False).count(),
         "sales_count": Sales.objects.count(),
         "expense_count": Expenses.objects.count(),
         "log_count": HistoryLog.objects.count(),
@@ -110,20 +110,56 @@ def dashboard(request):
 
 @login_required(login_url="login")
 def product_stock(request):
-    products = ProductInventory.objects.select_related("product").all()
-    return render(request, "product_stock.html", {"products": products})
+    search_query = request.GET.get('q', '').strip()
+
+    products_qs = (
+        ProductInventory.objects
+        .select_related("product")
+        .filter(product__is_archived=False)
+        .order_by("product__id")
+    )
+    if search_query:
+        products_qs = products_qs.filter(
+            Q(product__product_type__name__icontains=search_query) |
+            Q(product__variant__name__icontains=search_query) |
+            Q(product__description__icontains=search_query)
+        )
+    paginator = Paginator(products_qs, 10)
+    page_number = request.GET.get("page")
+    products_page = paginator.get_page(page_number)
+    return render(request, "product_stock.html", {
+        "products": products_page,
+        "search_query": search_query,
+    })
 
 
 @login_required(login_url="login")
 def raw_stock(request):
-    raws = RawMaterialInventory.objects.select_related("material").all()
-    return render(request, "raw_stock.html", {"raws": raws})
+    search_query = request.GET.get('q', '').strip()
+
+    raws_qs = (
+        RawMaterialInventory.objects
+        .select_related("material")
+        .filter(material__is_archived=False)
+        .order_by('material__name')
+    )
+    if search_query:
+        raws_qs = raws_qs.filter(
+            Q(material__name__icontains=search_query)
+        )
+    paginator = Paginator(raws_qs, 10)
+    page_number = request.GET.get("page")
+    raws_page = paginator.get_page(page_number)
+    return render(request, "raw_stock.html", {
+        "raws": raws_page,
+        "search_query": search_query,
+    })
 
 
 @login_required(login_url="login")
 def history_log_view(request):
     logs_qs = HistoryLog.objects.select_related("admin", "log_type").order_by("-log_date")
-    paginator = Paginator(logs_qs, 20)
+    paginator = Paginator(logs_qs, 10)
     page_number = request.GET.get("page")
     logs_page = paginator.get_page(page_number)
     return render(request, "history_log.html", {"logs": logs_page})
@@ -131,25 +167,46 @@ def history_log_view(request):
 
 @login_required(login_url="login")
 def sales_list(request):
+    search_query = request.GET.get('q', '').strip()
+
     sales_qs = Sales.objects.all().order_by('-date')
-    paginator = Paginator(sales_qs, 20)
+    if search_query:
+        sales_qs = sales_qs.filter(
+            Q(category__icontains=search_query) 
+            # Q(description__icontains=search_query)
+        )
+    paginator = Paginator(sales_qs, 10)
     page_number = request.GET.get("page")
     sales_page = paginator.get_page(page_number)
-    return render(request, "sales_list.html", {"sales": sales_page})
+    return render(request, "sales_list.html", {
+        "sales": sales_page,
+        "search_query": search_query,
+    })
 
 
 @login_required(login_url="login")
 def expenses_list(request):
+    search_query = request.GET.get('q', '').strip()
+
     expenses_qs = Expenses.objects.all().order_by('-date')
-    paginator = Paginator(expenses_qs, 20)
+    if search_query:
+        expenses_qs = expenses_qs.filter(
+            Q(category__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+    paginator = Paginator(expenses_qs, 10)
     page_number = request.GET.get("page")
     expenses_page = paginator.get_page(page_number)
-    return render(request, "expenses_list.html", {"expenses": expenses_page})
+    return render(request, "expenses_list.html", {
+        "expenses": expenses_page,
+        "search_query": search_query,
+    })
 
 
 @login_required(login_url="login")
 def stock_changes(request):
     """Display stock changes with pagination"""
+    search_query = request.GET.get('q', '').strip()
     # Get all stock changes ordered by date (newest first)
     changes_qs = StockChanges.objects.select_related('created_by_admin').order_by('-date')
     
@@ -157,7 +214,8 @@ def stock_changes(request):
     changes_list = []
     for change in changes_qs:
         item_name = "Unknown Item"
-        if change.item_type == 'product':
+        item_type = (change.item_type or '').lower()
+        if item_type == 'product':
             try:
                 product = Products.objects.select_related(
                     'product_type', 'variant', 'size', 'size_unit'
@@ -165,7 +223,7 @@ def stock_changes(request):
                 item_name = f"{product.product_type.name} - {product.variant.name} ({product.size.size_label} {product.size_unit.unit_name})"
             except Products.DoesNotExist:
                 item_name = f"Product ID {change.item_id} (Deleted)"
-        elif change.item_type == 'raw_material':
+        elif item_type == 'raw_material':
             try:
                 material = RawMaterials.objects.select_related('unit').get(id=change.item_id)
                 item_name = f"{material.name} ({material.size} {material.unit.unit_name})"
@@ -181,13 +239,27 @@ def stock_changes(request):
             'date': change.date,
             'created_by': change.created_by_admin.username
         })
+
+    if search_query:
+        query = search_query.lower()
+        changes_list = [
+            entry for entry in changes_list
+            if query in entry['item_name'].lower()
+            or query in entry['item_type'].lower()
+            or query in entry['category'].lower()
+            or query in str(entry['quantity_change']).lower()
+            or query in entry['created_by'].lower()
+        ]
     
     # Paginate
-    paginator = Paginator(changes_list, 20)
+    paginator = Paginator(changes_list, 10)
     page_number = request.GET.get('page')
     changes_page = paginator.get_page(page_number)
     
-    return render(request, "stock_changes.html", {"changes": changes_page})
+    return render(request, "stock_changes.html", {
+        "changes": changes_page,
+        "search_query": search_query,
+    })
 
 
 @login_required(login_url="login")
@@ -196,17 +268,25 @@ def monthly_report(request):
     return render(request, "monthly_report.html")
 
 
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+import psycopg2
+
 @login_required(login_url="login")
 def monthly_report_data(request):
     """Fetch monthly business report data from Supabase"""
     try:
-        # Connect to Supabase PostgreSQL
+        # Get database config from Django settings
+        db_config = settings.DATABASES['default']
+        
+        # Connect to Supabase PostgreSQL using settings
         conn = psycopg2.connect(
-            dbname='postgres',
-            user='postgres',
-            password='Reals_db_123',
-            host='db.rczsumkmhoxjaycvggzt.supabase.co',
-            port='5432',
+            dbname=db_config['NAME'],
+            user=db_config['USER'],
+            password=db_config['PASSWORD'],
+            host=db_config['HOST'],
+            port=db_config['PORT'],
             sslmode='require'
         )
         cursor = conn.cursor()
@@ -234,7 +314,7 @@ def monthly_report_data(request):
                 COALESCE(me.expenses, 0) as expenses,
                 (ms.revenue - COALESCE(me.expenses, 0)) as profit,
                 LAG(ms.revenue) OVER (ORDER BY ms.month_date) as prev_revenue,
-                LAG(ms.revenue - COALESCE(me.expenses, 0)) OVER (ORDER BY ms.month_date) as prev_profit
+                LAG((ms.revenue - COALESCE(me.expenses, 0))) OVER (ORDER BY ms.month_date) as prev_profit
             FROM monthly_sales ms
             LEFT JOIN monthly_expenses me ON ms.month_date = me.month_date
             ORDER BY ms.month_date DESC
