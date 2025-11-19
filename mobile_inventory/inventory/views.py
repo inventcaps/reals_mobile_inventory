@@ -3,7 +3,9 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Sum, Count, Q
+from django.db.models.functions import TruncMonth
 from django.http import JsonResponse, FileResponse
+from django.conf import settings
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
@@ -341,55 +343,80 @@ def expenses_list(request):
 def stock_changes(request):
     """Display stock changes with pagination"""
     search_query = request.GET.get('q', '').strip()
-    # Get all stock changes ordered by date (newest first)
     changes_qs = StockChanges.objects.select_related('created_by_admin').order_by('-date')
-    
-    # Add item names to each change
-    changes_list = []
-    for change in changes_qs:
-        item_name = "Unknown Item"
-        item_type = (change.item_type or '').lower()
-        if item_type == 'product':
-            try:
-                product = Products.objects.select_related(
-                    'product_type', 'variant', 'size', 'size_unit'
-                ).get(id=change.item_id)
-                item_name = f"{product.product_type.name} - {product.variant.name} ({product.size.size_label} {product.size_unit.unit_name})"
-            except Products.DoesNotExist:
-                item_name = f"Product ID {change.item_id} (Deleted)"
-        elif item_type == 'raw_material':
-            try:
-                material = RawMaterials.objects.select_related('unit').get(id=change.item_id)
-                item_name = f"{material.name} ({material.size} {material.unit.unit_name})"
-            except RawMaterials.DoesNotExist:
-                item_name = f"Raw Material ID {change.item_id} (Deleted)"
-        
-        changes_list.append({
-            'id': change.id,
-            'item_name': item_name,
-            'item_type': change.item_type,
-            'quantity_change': change.quantity_change,
-            'category': change.category,
-            'date': change.date,
-            'created_by': change.created_by_admin.username
-        })
+
+    def build_change_rows(changes):
+        """Attach display data (item name, creator) to StockChanges instances."""
+        if not changes:
+            return []
+
+        product_ids = {c.item_id for c in changes if (c.item_type or '').lower() == 'product'}
+        raw_ids = {c.item_id for c in changes if (c.item_type or '').lower() == 'raw_material'}
+
+        product_map = {}
+        if product_ids:
+            product_qs = (
+                Products.objects.select_related('product_type', 'variant', 'size', 'size_unit')
+                .filter(id__in=product_ids)
+            )
+            for product in product_qs:
+                size_label = getattr(product.size, 'size_label', 'N/A')
+                unit_name = getattr(product.size_unit, 'unit_name', '')
+                product_map[product.id] = (
+                    f"{product.product_type.name} - {product.variant.name} "
+                    f"({size_label} {unit_name})"
+                )
+
+        raw_map = {}
+        if raw_ids:
+            raw_qs = RawMaterials.objects.select_related('unit').filter(id__in=raw_ids)
+            for material in raw_qs:
+                unit_name = getattr(material.unit, 'unit_name', '')
+                raw_map[material.id] = f"{material.name} ({material.size} {unit_name})"
+
+        rows = []
+        for change in changes:
+            item_type = (change.item_type or '').lower()
+            if item_type == 'product':
+                item_name = product_map.get(change.item_id, f"Product ID {change.item_id} (Deleted)")
+            elif item_type == 'raw_material':
+                item_name = raw_map.get(change.item_id, f"Raw Material ID {change.item_id} (Deleted)")
+            else:
+                item_name = "Unknown Item"
+
+            rows.append({
+                'id': change.id,
+                'item_name': item_name,
+                'item_type': change.item_type,
+                'quantity_change': change.quantity_change,
+                'category': change.category,
+                'date': change.date,
+                'created_by': getattr(change.created_by_admin, 'username', 'System')
+            })
+        return rows
+
+    page_number = request.GET.get('page')
 
     if search_query:
+        # Only build the expensive list when actually searching
+        all_changes = list(changes_qs)
+        changes_list = build_change_rows(all_changes)
         query = search_query.lower()
-        changes_list = [
+        filtered = [
             entry for entry in changes_list
             if query in entry['item_name'].lower()
-            or query in entry['item_type'].lower()
+            or query in (entry['item_type'] or '').lower()
             or query in entry['category'].lower()
             or query in str(entry['quantity_change']).lower()
             or query in entry['created_by'].lower()
         ]
-    
-    # Paginate
-    paginator = Paginator(changes_list, 10)
-    page_number = request.GET.get('page')
-    changes_page = paginator.get_page(page_number)
-    
+        paginator = Paginator(filtered, 10)
+        changes_page = paginator.get_page(page_number)
+    else:
+        paginator = Paginator(changes_qs, 10)
+        changes_page = paginator.get_page(page_number)
+        changes_page.object_list = build_change_rows(list(changes_page.object_list))
+
     return render(request, "stock_changes.html", {
         "changes": changes_page,
         "search_query": search_query,
@@ -418,15 +445,30 @@ def monthly_report_data(request):
         .order_by("month")
     )
 
-    loss_withdrawals = (
+    loss_withdrawals = list(
         Withdrawals.objects
         .filter(
             reason__in=['EXPIRED', 'DAMAGED', 'REPLACEMENT_FOR_RETURNED'],
             is_archived=False
         )
         .annotate(month=TruncMonth("date"))
-        .values("month", "item_type", "item_id", "quantity")
+        .values("month", "item_type", "item_id", "quantity", "custom_price")
     )
+
+    product_ids = {w["item_id"] for w in loss_withdrawals if w["item_type"] == 'PRODUCT'}
+    raw_ids = {w["item_id"] for w in loss_withdrawals if w["item_type"] == 'RAW_MATERIAL'}
+
+    product_prices = {}
+    if product_ids:
+        product_qs = Products.objects.select_related('unit_price').filter(id__in=product_ids)
+        for product in product_qs:
+            product_prices[product.id] = Decimal(product.unit_price.unit_price)
+
+    raw_prices = {}
+    if raw_ids:
+        raw_qs = RawMaterials.objects.filter(id__in=raw_ids)
+        for material in raw_qs:
+            raw_prices[material.id] = Decimal(material.price_per_unit)
 
     financial_loss_dict = {}
     for withdrawal in loss_withdrawals:
@@ -434,16 +476,20 @@ def monthly_report_data(request):
         if month not in financial_loss_dict:
             financial_loss_dict[month] = Decimal('0.00')
 
-        try:
-            if withdrawal["item_type"] == 'PRODUCT':
-                product = Products.objects.select_related('unit_price').get(id=withdrawal["item_id"])
-                loss_amount = Decimal(withdrawal["quantity"]) * product.unit_price.unit_price
-            else:
-                material = RawMaterials.objects.get(id=withdrawal["item_id"])
-                loss_amount = Decimal(withdrawal["quantity"]) * material.price_per_unit
-            financial_loss_dict[month] += loss_amount
-        except (Products.DoesNotExist, RawMaterials.DoesNotExist):
+        quantity = Decimal(withdrawal["quantity"]) if withdrawal["quantity"] is not None else Decimal('0.00')
+        custom_price = withdrawal.get("custom_price")
+        if custom_price is not None:
+            price = Decimal(custom_price)
+        elif withdrawal["item_type"] == 'PRODUCT':
+            price = product_prices.get(withdrawal["item_id"])
+        else:
+            price = raw_prices.get(withdrawal["item_id"])
+
+        if price is None:
             continue
+
+        loss_amount = quantity * price
+        financial_loss_dict[month] += loss_amount
 
     def normalize_date(dt):
         return dt.date() if hasattr(dt, 'date') else dt
@@ -502,6 +548,22 @@ def user_activity(request):
     from django.contrib.sessions.models import Session
     from django.utils import timezone
     
+    # Preload active sessions once to avoid repeated decoding and skip corrupted rows
+    active_sessions = Session.objects.filter(expire_date__gte=timezone.now())
+    active_user_ids = set()
+    for session in active_sessions:
+        try:
+            session_data = session.get_decoded()
+        except Exception as exc:
+            logger.warning(f"Skipping corrupted session {session.session_key}: {exc}")
+            continue
+        user_id = session_data.get('_auth_user_id')
+        if user_id:
+            try:
+                active_user_ids.add(int(user_id))
+            except ValueError:
+                continue
+
     # Get all users
     users = AuthUser.objects.all().order_by('username')
     
@@ -515,22 +577,10 @@ def user_activity(request):
         # Get last login
         last_login = user.last_login
         
-        # Check if user is currently logged in by checking active sessions
-        is_active = False
-        last_logout = None
-        
-        # Get all sessions
-        active_sessions = Session.objects.filter(expire_date__gte=timezone.now())
-        for session in active_sessions:
-            session_data = session.get_decoded()
-            if session_data.get('_auth_user_id') == str(user.id):
-                is_active = True
-                break
-        
         # Determine status
         if not user.is_active:
             status = 'Inactive'
-        elif is_active:
+        elif user.id in active_user_ids:
             status = 'Active'
         else:
             status = 'Logged Out'
@@ -540,7 +590,7 @@ def user_activity(request):
             'email': user.email,
             'status': status,
             'last_login': last_login,
-            'last_logout': last_logout,
+            'last_logout': None,
             'is_active': user.is_active
         })
     

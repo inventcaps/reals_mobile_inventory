@@ -3,9 +3,13 @@ const urlsToCache = [
   "/dashboard/",
   "/products/stock/",
   "/raw/stock/",
-  "/history/",
+  "/stock/changes/",
   "/sales/",
   "/expenses/",
+  "/history/",
+  "/report/best-sellers/",
+  "/report/monthly/",
+  "/user-activity/",
   "/login/",
   // CDN resources for offline use
   "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css",
@@ -47,18 +51,21 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   const { request } = event;
   const url = new URL(request.url);
+  const isHeadRequest = request.method === 'HEAD';
+  const isGetRequest = request.method === 'GET';
 
-  // Skip caching for non-GET requests
-  if (request.method !== 'GET') {
+  if (!isGetRequest && !isHeadRequest) {
     return;
   }
+
+  const cacheLookupKey = isHeadRequest ? request.url : request;
 
   event.respondWith(
     // Try network first
     fetch(request)
       .then(networkResponse => {
         const cloned = networkResponse.clone();
-        if (networkResponse.ok) {
+        if (networkResponse.ok && isGetRequest) {
           caches.open(CACHE_NAME).then(cache => {
             cache.put(request, cloned);
           });
@@ -66,28 +73,32 @@ self.addEventListener("fetch", event => {
         }
 
         // Network reachable but response errored (e.g., DB offline). Try cache.
-        if (request.method === 'GET') {
-          return caches.match(request).then(cacheResponse => {
-            if (cacheResponse) {
-              console.log('📦 Serving cached content due to server error:', url.pathname);
-              return cacheResponse;
-            }
-            return networkResponse;
-          });
-        }
-
-        return networkResponse;
+        return caches.match(cacheLookupKey).then(cacheResponse => {
+          if (cacheResponse) {
+            console.log('📦 Serving cached content due to server error:', url.pathname);
+            return isHeadRequest ? new Response(null, {
+              status: cacheResponse.status,
+              statusText: cacheResponse.statusText,
+              headers: cacheResponse.headers
+            }) : cacheResponse;
+          }
+          return networkResponse;
+        });
       })
       .catch(() => {
         // Network failed, try cache
-        return caches.match(request).then(cachedResponse => {
+        return caches.match(cacheLookupKey).then(cachedResponse => {
           if (cachedResponse) {
             console.log("📦 Serving from cache (offline):", url.pathname);
-            return cachedResponse;
+            return isHeadRequest ? new Response(null, {
+              status: cachedResponse.status,
+              statusText: cachedResponse.statusText,
+              headers: cachedResponse.headers
+            }) : cachedResponse;
           }
           
           // No cache available, return offline page for HTML requests
-          if (request.headers.get('accept').includes('text/html')) {
+          if (isGetRequest && request.headers.get('accept').includes('text/html')) {
             return new Response(
               `<!DOCTYPE html>
               <html>
