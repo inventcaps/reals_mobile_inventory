@@ -41,6 +41,13 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
+            # Ensure only superusers can access the mobile dashboard
+            if not user.is_superuser:
+                logger.warning(f"Blocked login for non-superuser: {username} from IP: {get_client_ip(request)}")
+                return render(request, "login.html", {
+                    "error": "Only administrator accounts are allowed to sign in on mobile."
+                })
+
             # Check if user is active
             if not user.is_active:
                 logger.warning(f"Login attempt by inactive user: {username} from IP: {get_client_ip(request)}")
