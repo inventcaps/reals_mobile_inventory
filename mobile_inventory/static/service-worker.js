@@ -57,16 +57,25 @@ self.addEventListener("fetch", event => {
     // Try network first
     fetch(request)
       .then(networkResponse => {
-        // Clone the response
-        const responseToCache = networkResponse.clone();
-        
-        // Cache successful responses (200-299)
+        const cloned = networkResponse.clone();
         if (networkResponse.ok) {
           caches.open(CACHE_NAME).then(cache => {
-            cache.put(request, responseToCache);
+            cache.put(request, cloned);
+          });
+          return networkResponse;
+        }
+
+        // Network reachable but response errored (e.g., DB offline). Try cache.
+        if (request.method === 'GET') {
+          return caches.match(request).then(cacheResponse => {
+            if (cacheResponse) {
+              console.log('📦 Serving cached content due to server error:', url.pathname);
+              return cacheResponse;
+            }
+            return networkResponse;
           });
         }
-        
+
         return networkResponse;
       })
       .catch(() => {

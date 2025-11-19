@@ -25,6 +25,7 @@ urlpatterns = [
     # monthly business report
     path('report/monthly/', views.monthly_report, name="monthly_report"),
     path('api/report/monthly/', views.monthly_report_data, name="monthly_report_data"),
+    path('service-worker.js', views.service_worker, name="service_worker"),
     
     # user activity
     path('user-activity/', views.user_activity, name="user_activity"),

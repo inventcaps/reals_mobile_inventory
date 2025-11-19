@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Sum, Count, Q
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
@@ -11,6 +11,7 @@ import psycopg2
 from decimal import Decimal
 import logging
 from datetime import datetime
+import os
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -400,11 +401,6 @@ def monthly_report(request):
     """Render monthly business report page"""
     return render(request, "monthly_report.html")
 
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-import psycopg2
-from django.db.models.functions import TruncMonth
-
 @login_required(login_url="login")
 def monthly_report_data(request):
     """Mirror production monthly report logic using ORM"""
@@ -549,3 +545,15 @@ def user_activity(request):
         })
     
     return render(request, "user_activity.html", {"users": user_list})
+
+
+@require_http_methods(["GET"])
+def service_worker(request):
+    """Serve service worker from project root scope"""
+    sw_path = os.path.join(settings.BASE_DIR, "static", "service-worker.js")
+    if not os.path.exists(sw_path):
+        return JsonResponse({"error": "Service worker not found"}, status=404)
+    response = FileResponse(open(sw_path, "rb"), content_type="application/javascript")
+    # prevent caching issues when updating SW
+    response['Cache-Control'] = 'no-cache'
+    return response
