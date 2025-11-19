@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container py-4" style="padding-bottom: 90px;">
+  <div class="d-flex align-items-center mb-3">
+    <a href="{% url 'dashboard' %}" class="back-button">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7" />
+      </svg>
+    </a>
+    <h4 class="page-header mb-0 ms-2">🏆 Best Seller Insights</h4>
+  </div>
+
+  <div class="filter-card shadow-sm">
+    <form method="get" class="row g-3 align-items-end" id="filtersForm">
+      <div class="col-12">
+        <label class="form-label fw-semibold mb-1">Selected Period</label>
+        <div class="input-group">
+          <span class="input-group-text">📅</span>
+          <input type="month"
+                 class="form-control"
+                 name="month"
+                 value="{{ filters.selected_value }}"
+                 {% if summary.show_all %}disabled{% endif %}>
+        </div>
+        <small class="text-muted">Showing: {{ summary.filter_label }}</small>
+      </div>
+      <div class="col-12 d-flex justify-content-between align-items-center">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="showAllSwitch"
+                 name="show_all" value="1" {% if summary.show_all %}checked{% endif %}>
+          <label class="form-check-label" for="showAllSwitch">Show all data</label>
+        </div>
+        <button class="btn btn-primary btn-lg px-4" type="submit">Apply</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-lg-6">
+      <div class="bestseller-card top-card">
+        <div class="card-heading">
+          <div>
+            <h5 class="mb-0">Top Selling Products</h5>
+            <small>Products with highest sales quantity</small>
+          </div>
+        </div>
+        <div class="list-header">
+          <span>Rank</span>
+          <span>Product</span>
+          <span>Total Sold</span>
+        </div>
+        <div class="product-list">
+          {% for product in best_sellers %}
+            <div class="product-row">
+              <div class="rank-pill">#{{ forloop.counter }}</div>
+              <div class="product-info">
+                <p class="title mb-0">{{ product.name }}</p>
+                <small class="text-muted">{{ product.detail }}</small>
+              </div>
+              <div class="badge bg-primary rounded-pill">{{ product.total_quantity|floatformat:0 }} units</div>
+            </div>
+          {% empty %}
+            <p class="text-center text-muted py-4">No sales recorded for this period.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="bestseller-card low-card">
+        <div class="card-heading">
+          <div>
+            <h5 class="mb-0">Low Selling Products</h5>
+            <small>Products with lowest sales quantity</small>
+          </div>
+        </div>
+        <div class="list-header">
+          <span>Rank</span>
+          <span>Product</span>
+          <span>Total Sold</span>
+        </div>
+        <div class="product-list">
+          {% for product in low_sellers %}
+            <div class="product-row">
+              <div class="rank-pill soft">#{{ forloop.counter }}</div>
+              <div class="product-info">
+                <p class="title mb-0">{{ product.name }}</p>
+                <small class="text-muted">{{ product.detail }}</small>
+              </div>
+              <div class="badge bg-secondary rounded-pill">{{ product.total_quantity|floatformat:0 }} units</div>
+            </div>
+          {% empty %}
+            <p class="text-center text-muted py-4">No products to display.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  color: #2f3e46;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.page-header { font-weight: 700; color: #2f3e46; }
+.filter-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+}
+.summary-card {
+  border-radius: 18px;
+  padding: 18px;
+  background: linear-gradient(135deg, #f8fafc, #e8f5ff);
+}
+.summary-card .card-label { text-transform: uppercase; font-size: 13px; color: #6c757d; }
+.summary-card .card-value { font-size: 1.5rem; font-weight: 700; color: #1f2d3d; }
+.revenue-card { background: linear-gradient(120deg, #fef7f5, #fde6dd); }
+.profit-card { background: linear-gradient(120deg, #e0f7fa, #c6f6d5); }
+.avg-card { background: linear-gradient(120deg, #f3e8ff, #e0d7ff); }
+.bestseller-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+}
+.card-heading small { color: #6c757d; }
+.list-header {
+  display: grid;
+  grid-template-columns: 70px 1fr 120px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6c757d;
+  padding: 10px 0;
+  border-bottom: 1px solid #edf2f7;
+}
+.product-list { margin-top: 6px; }
+.product-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 120px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.rank-pill {
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #03c988, #00a884);
+  color: #fff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rank-pill.soft {
+  background: linear-gradient(135deg, #f7c04a, #fba94a);
+}
+.product-info .title { font-weight: 600; color: #27364b; }
+.badge {
+  font-size: 0.85rem;
+  padding: 8px 14px;
+}
+@media (max-width: 767px) {
+  .list-header, .product-row {
+    grid-template-columns: 60px 1fr;
+  }
+  .product-row .badge {
+    justify-self: start;
+    margin-top: 4px;
+  }
+}
+</style>
+
+<script>
+const showAllSwitch = document.getElementById('showAllSwitch');
+const monthInput = document.querySelector('input[name="month"]');
+showAllSwitch?.addEventListener('change', () => {
+  if (monthInput) {
+    monthInput.disabled = showAllSwitch.checked;
+  }
+});
+</script>
+{% endblock %}

@@ -396,16 +396,19 @@ class Withdrawals(models.Model):
     item_type = models.CharField(max_length=12, choices=ITEM_TYPE_CHOICES)
     item_id = models.BigIntegerField()
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    custom_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, db_column='custom_price')
     REASON_CHOICES = [
         ('SOLD', 'Sold'),
         ('EXPIRED', 'Expired'),
         ('DAMAGED', 'Damaged'),
         ('RETURNED', 'Returned'),
+        ('REPLACEMENT_FOR_RETURNED', 'Replacement for Returned'),
         ('OTHERS', 'Others'),
     ]
-    reason = models.CharField(max_length=20, choices=REASON_CHOICES)
+    reason = models.CharField(max_length=30, choices=REASON_CHOICES)
     date = models.DateTimeField(auto_now_add=True) 
     created_by_admin = models.ForeignKey(User, on_delete=models.DO_NOTHING, db_column="created_by_admin_id")
+    is_archived = models.BooleanField(db_column='is_archived', default=False)
 
     class Meta:
         managed = False

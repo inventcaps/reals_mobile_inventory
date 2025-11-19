@@ -6,9 +6,11 @@ from django.db.models import Sum, Count, Q
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_protect
+from django.utils import timezone
 import psycopg2
 from decimal import Decimal
 import logging
+from datetime import datetime
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -95,7 +97,18 @@ def logout_view(request):
     return redirect("login")
 
 
-from .models import ProductInventory, RawMaterialInventory, Sales, Expenses, HistoryLog, StockChanges, Products, RawMaterials, AuthUser
+from .models import (
+    ProductInventory,
+    RawMaterialInventory,
+    Sales,
+    Expenses,
+    HistoryLog,
+    StockChanges,
+    Products,
+    RawMaterials,
+    AuthUser,
+    Withdrawals,
+)
 
 @login_required(login_url="login")
 def dashboard(request):
@@ -154,6 +167,119 @@ def raw_stock(request):
         "raws": raws_page,
         "search_query": search_query,
     })
+
+
+@login_required(login_url="login")
+def best_sellers(request):
+    """Display top/low selling products using mobile-friendly widgets"""
+    month_param = request.GET.get('month')
+    show_all = request.GET.get('show_all') == '1'
+
+    now = timezone.localtime()
+    filter_year = now.year
+    filter_month = now.month
+    filter_label = now.strftime('%B %Y')
+
+    if month_param and '-' in month_param:
+        try:
+            parsed = datetime.strptime(month_param, "%Y-%m")
+            filter_year, filter_month = parsed.year, parsed.month
+            filter_label = parsed.strftime('%B %Y')
+        except ValueError:
+            pass
+
+    withdrawals_qs = Withdrawals.objects.filter(
+        item_type='PRODUCT',
+        reason='SOLD',
+        is_archived=False
+    )
+
+    if not show_all:
+        withdrawals_qs = withdrawals_qs.filter(date__year=filter_year, date__month=filter_month)
+    else:
+        filter_label = 'All Time'
+
+    product_sales: dict[int, dict[str, Decimal]] = {}
+    for withdrawal in withdrawals_qs:
+        stats = product_sales.setdefault(withdrawal.item_id, {
+            'total_quantity': Decimal('0'),
+            'total_revenue': Decimal('0'),
+        })
+        quantity = Decimal(withdrawal.quantity or 0)
+        stats['total_quantity'] += quantity
+        price = withdrawal.custom_price if withdrawal.custom_price is not None else Decimal('0')
+        stats['total_revenue'] += price * quantity
+
+    product_ids = list(product_sales.keys())
+    products_map = {
+        product.id: product
+        for product in Products.objects.select_related(
+            'product_type', 'variant', 'size', 'size_unit'
+        ).filter(id__in=product_ids)
+    }
+
+    def describe_product(product_obj):
+        if not product_obj:
+            return ('Archived Product', 'Record no longer available')
+        return (
+            f"{product_obj.product_type.name} - {product_obj.variant.name}",
+            f"{product_obj.size.size_label} {product_obj.size_unit.unit_name}"
+        )
+
+    sold_products = []
+    for pid, stats in product_sales.items():
+        name, detail = describe_product(products_map.get(pid))
+        sold_products.append({
+            'product_id': pid,
+            'name': name,
+            'detail': detail,
+            'total_quantity': stats['total_quantity'],
+            'total_revenue': stats['total_revenue'],
+        })
+
+    best_selling = sorted(sold_products, key=lambda item: item['total_quantity'], reverse=True)[:10]
+    low_selling = sorted(sold_products, key=lambda item: item['total_quantity'])[:10]
+
+    if len(low_selling) < 10:
+        missing = 10 - len(low_selling)
+        zero_products = (
+            Products.objects.filter(is_archived=False)
+            .exclude(id__in=product_ids)
+            .select_related('product_type', 'variant', 'size', 'size_unit')
+            .order_by('product_type__name', 'variant__name')[:missing]
+        )
+        for product in zero_products:
+            name, detail = describe_product(product)
+            low_selling.append({
+                'product_id': product.id,
+                'name': name,
+                'detail': detail,
+                'total_quantity': Decimal('0'),
+                'total_revenue': Decimal('0'),
+            })
+
+    available_years = sorted({d.year for d in Withdrawals.objects.filter(
+        item_type='PRODUCT', reason='SOLD', is_archived=False
+    ).dates('date', 'year')})
+    month_choices = [
+        {'value': f"{m:02d}", 'label': datetime(2000, m, 1).strftime('%B')}
+        for m in range(1, 13)
+    ]
+
+    context = {
+        'best_sellers': best_selling,
+        'low_sellers': low_selling,
+        'filter_label': filter_label,
+        'show_all': show_all,
+        'filters': {
+            'selected_value': f"{filter_year}-{filter_month:02d}",
+            'show_all': show_all,
+            'available_years': available_years,
+            'month_choices': month_choices,
+        }
+    }
+
+    return render(request, "best_sellers.html", context)
 
 
 @login_required(login_url="login")
@@ -267,111 +393,104 @@ def monthly_report(request):
     """Render monthly business report page"""
     return render(request, "monthly_report.html")
 
-
-from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 import psycopg2
+from django.db.models.functions import TruncMonth
 
 @login_required(login_url="login")
 def monthly_report_data(request):
-    """Fetch monthly business report data from Supabase"""
-    try:
-        # Get database config from Django settings
-        db_config = settings.DATABASES['default']
-        
-        # Connect to Supabase PostgreSQL using settings
-        conn = psycopg2.connect(
-            dbname=db_config['NAME'],
-            user=db_config['USER'],
-            password=db_config['PASSWORD'],
-            host=db_config['HOST'],
-            port=db_config['PORT'],
-            sslmode='require'
+    """Mirror production monthly report logic using ORM"""
+    sales = (
+        Sales.objects.annotate(month=TruncMonth("date"))
+        .values("month")
+        .annotate(total_sales=Sum("amount"))
+        .order_by("month")
+    )
+
+    expenses = (
+        Expenses.objects.annotate(month=TruncMonth("date"))
+        .values("month")
+        .annotate(total_expenses=Sum("amount"))
+        .order_by("month")
+    )
+
+    loss_withdrawals = (
+        Withdrawals.objects
+        .filter(
+            reason__in=['EXPIRED', 'DAMAGED', 'REPLACEMENT_FOR_RETURNED'],
+            is_archived=False
         )
-        cursor = conn.cursor()
-        
-        # Query for monthly revenue and expenses
-        monthly_query = """
-            WITH monthly_sales AS (
-                SELECT 
-                    TO_CHAR(date, 'Month YYYY') as month,
-                    DATE_TRUNC('month', date) as month_date,
-                    COALESCE(SUM(amount), 0) as revenue
-                FROM sales
-                GROUP BY DATE_TRUNC('month', date), TO_CHAR(date, 'Month YYYY')
-            ),
-            monthly_expenses AS (
-                SELECT 
-                    DATE_TRUNC('month', date) as month_date,
-                    COALESCE(SUM(amount), 0) as expenses
-                FROM expenses
-                GROUP BY DATE_TRUNC('month', date)
-            )
-            SELECT 
-                ms.month,
-                ms.revenue,
-                COALESCE(me.expenses, 0) as expenses,
-                (ms.revenue - COALESCE(me.expenses, 0)) as profit,
-                LAG(ms.revenue) OVER (ORDER BY ms.month_date) as prev_revenue,
-                LAG((ms.revenue - COALESCE(me.expenses, 0))) OVER (ORDER BY ms.month_date) as prev_profit
-            FROM monthly_sales ms
-            LEFT JOIN monthly_expenses me ON ms.month_date = me.month_date
-            ORDER BY ms.month_date DESC
-            LIMIT 12
-        """
-        cursor.execute(monthly_query)
-        monthly_data = cursor.fetchall()
-        
-        cursor.close()
-        conn.close()
-        
-        # Process data
-        result = []
-        total_revenue = 0
-        total_profit = 0
-        
-        for row in monthly_data:
-            month, revenue, expenses, profit, prev_revenue, prev_profit = row
-            revenue = float(revenue)
-            expenses = float(expenses)
-            profit = float(profit)
-            
-            total_revenue += revenue
-            total_profit += profit
-            
-            # Calculate changes
-            revenue_change = None
-            profit_change = None
-            if prev_revenue is not None:
-                revenue_change = revenue - float(prev_revenue)
-            if prev_profit is not None:
-                profit_change = profit - float(prev_profit)
-            
-            result.append({
-                'month': month.strip(),
-                'revenue': revenue,
-                'expenses': expenses,
-                'profit': profit,
-                'revenue_change': revenue_change,
-                'profit_change': profit_change
-            })
-        
-        # Calculate averages
-        count = len(result)
-        avg_profit = total_profit / count if count > 0 else 0
-        
-        return JsonResponse({
-            'summary': {
-                'total_revenue': total_revenue,
-                'total_profit': total_profit,
-                'avg_profit': avg_profit
-            },
-            'monthly_data': result
-        })
-        
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        .annotate(month=TruncMonth("date"))
+        .values("month", "item_type", "item_id", "quantity")
+    )
+
+    financial_loss_dict = {}
+    for withdrawal in loss_withdrawals:
+        month = withdrawal["month"]
+        if month not in financial_loss_dict:
+            financial_loss_dict[month] = Decimal('0.00')
+
+        try:
+            if withdrawal["item_type"] == 'PRODUCT':
+                product = Products.objects.select_related('unit_price').get(id=withdrawal["item_id"])
+                loss_amount = Decimal(withdrawal["quantity"]) * product.unit_price.unit_price
+            else:
+                material = RawMaterials.objects.get(id=withdrawal["item_id"])
+                loss_amount = Decimal(withdrawal["quantity"]) * material.price_per_unit
+            financial_loss_dict[month] += loss_amount
+        except (Products.DoesNotExist, RawMaterials.DoesNotExist):
+            continue
+
+    def normalize_date(dt):
+        return dt.date() if hasattr(dt, 'date') else dt
+
+    expenses_dict = {normalize_date(e["month"]): e["total_expenses"] for e in expenses}
+    sales_dict = {normalize_date(s["month"]): s["total_sales"] for s in sales}
+    normalized_loss = {normalize_date(m): amt for m, amt in financial_loss_dict.items()}
+
+    months = sorted(set(list(sales_dict.keys()) + list(expenses_dict.keys()) + list(normalized_loss.keys())))
+
+    report = []
+    prev = None
+    for month in months:
+        gross_revenue = Decimal(sales_dict.get(month, 0) or 0)
+        loss = Decimal(normalized_loss.get(month, 0) or 0)
+        revenue = gross_revenue - loss
+        expense = Decimal(expenses_dict.get(month, 0) or 0)
+        profit = revenue - expense
+
+        revenue_change = profit_change = None
+        if prev:
+            revenue_change = revenue - prev["revenue"]
+            profit_change = profit - prev["profit"]
+
+        entry = {
+            "month": month.strftime("%B %Y"),
+            "revenue": float(revenue),
+            "loss": float(loss),
+            "expenses": float(expense),
+            "profit": float(profit),
+            "revenue_change": float(revenue_change) if revenue_change is not None else None,
+            "profit_change": float(profit_change) if profit_change is not None else None,
+        }
+        report.append(entry)
+        prev = {k: (Decimal(v) if isinstance(v, float) else v) for k, v in entry.items() if k in ["revenue", "profit"]}
+
+    total_revenue = sum(r["revenue"] for r in report)
+    total_loss = sum(r["loss"] for r in report)
+    total_profit = sum(r["profit"] for r in report)
+    avg_profit = total_profit / len(report) if report else 0
+
+    return JsonResponse({
+        "summary": {
+            "total_revenue": total_revenue,
+            "total_loss": total_loss,
+            "total_profit": total_profit,
+            "avg_profit": avg_profit,
+        },
+        "monthly_data": report
+    })
 
 
 @login_required(login_url="login")
@@ -385,7 +504,11 @@ def user_activity(request):
     
     # Build user activity data
     user_list = []
+    excluded_prefixes = ("deleted_", "inactive_", "rejected_")
     for user in users:
+        username_lower = (user.username or "").lower()
+        if username_lower.startswith(excluded_prefixes):
+            continue
         # Get last login
         last_login = user.last_login
         

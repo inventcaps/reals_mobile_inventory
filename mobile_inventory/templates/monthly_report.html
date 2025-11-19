@@ -14,19 +14,25 @@
   
   <!-- Summary Cards -->
   <div class="row g-3 mb-4">
-    <div class="col-4">
+    <div class="col-12 col-md-3">
       <div class="summary-card revenue-card">
         <p class="card-label">Total Revenue</p>
         <h3 class="card-value">₱<span id="totalRevenue">0</span></h3>
       </div>
     </div>
-    <div class="col-4">
+    <div class="col-12 col-md-3">
+      <div class="summary-card loss-card">
+        <p class="card-label">Financial Loss</p>
+        <h3 class="card-value">₱<span id="totalLoss">0</span></h3>
+      </div>
+    </div>
+    <div class="col-12 col-md-3">
       <div class="summary-card profit-card">
         <p class="card-label">Total Profit</p>
         <h3 class="card-value">₱<span id="totalProfit">0</span></h3>
       </div>
     </div>
-    <div class="col-4">
+    <div class="col-12 col-md-3">
       <div class="summary-card avg-card">
         <p class="card-label">Avg Profit</p>
         <h3 class="card-value">₱<span id="avgProfit">0</span></h3>
@@ -41,6 +47,7 @@
         <tr>
           <th>Month</th>
           <th>Revenue</th>
+          <th>Financial Loss</th>
           <th>Expenses</th>
           <th>Profit</th>
           <th>Trend</th>
@@ -101,6 +108,9 @@
 
   .avg-card {
     border-left: 4px solid #a78bfa;
+  }
+  .loss-card {
+    border-left: 4px solid #dc2626;
   }
 
   .card-label {
@@ -198,6 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(data => {
       // Update summary cards
       document.getElementById('totalRevenue').textContent = data.summary.total_revenue.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      document.getElementById('totalLoss').textContent = data.summary.total_loss.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
       document.getElementById('totalProfit').textContent = data.summary.total_profit.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
       document.getElementById('avgProfit').textContent = data.summary.avg_profit.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
@@ -225,6 +236,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tr.innerHTML = `
           <td><strong>${row.month}</strong></td>
           <td>₱${parseFloat(row.revenue).toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
+          <td>₱${parseFloat(row.loss).toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
           <td>₱${parseFloat(row.expenses).toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
           <td>₱${parseFloat(row.profit).toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
           <td>${trendBadge}</td>
