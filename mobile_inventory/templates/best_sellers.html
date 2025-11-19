@@ -21,17 +21,16 @@
                  class="form-control"
                  name="month"
                  value="{{ filters.selected_value }}"
-                 {% if summary.show_all %}disabled{% endif %}>
+                 {% if show_all %}disabled{% endif %}>
         </div>
         <small class="text-muted">Showing: {{ summary.filter_label }}</small>
       </div>
-      <div class="col-12 d-flex justify-content-between align-items-center">
+      <div class="col-12">
         <div class="form-check form-switch">
           <input class="form-check-input" type="checkbox" id="showAllSwitch"
-                 name="show_all" value="1" {% if summary.show_all %}checked{% endif %}>
+                 name="show_all" value="1" {% if show_all %}checked{% endif %}>
           <label class="form-check-label" for="showAllSwitch">Show all data</label>
         </div>
-        <button class="btn btn-primary btn-lg px-4" type="submit">Apply</button>
       </div>
     </form>
   </div>
@@ -185,11 +184,26 @@
 </style>
 
 <script>
+const filtersForm = document.getElementById('filtersForm');
 const showAllSwitch = document.getElementById('showAllSwitch');
 const monthInput = document.querySelector('input[name="month"]');
+
+const submitFilters = () => {
+  if (filtersForm) {
+    filtersForm.submit();
+  }
+};
+
 showAllSwitch?.addEventListener('change', () => {
   if (monthInput) {
     monthInput.disabled = showAllSwitch.checked;
+  }
+  submitFilters();
+});
+
+monthInput?.addEventListener('change', () => {
+  if (!showAllSwitch?.checked) {
+    submitFilters();
   }
 });
 </script>
