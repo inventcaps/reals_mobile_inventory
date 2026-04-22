@@ -64,40 +64,4 @@ document.getElementById("searchInput").addEventListener("keyup", function() {
 });
 </script>
 
-<!-- Fade-in Animation -->
-<style>
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(15px);
-  border-radius: 50%;
-  color: #2f3e46;
-  text-decoration: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  transition: all 0.2s ease;
-}
-
-.back-button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  color: #2f3e46;
-}
-
-.page-header {
-  font-weight: 700;
-  color: #2f3e46;
-}
-
-.fade-in-row {
-  animation: fadeIn 0.4s ease;
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-</style>
 {% endblock %}

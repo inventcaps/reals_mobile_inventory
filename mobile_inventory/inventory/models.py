@@ -6,7 +6,6 @@
 #   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
 # Feel free to rename the models, but don't rename db_table values or field names.
 from django.db import models
-from django.contrib.auth.models import User
 from django.utils import timezone
 
 class AuthGroup(models.Model):
@@ -292,8 +291,8 @@ class RawMaterialInventory(models.Model):
 class RawMaterials(models.Model):
     id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=45)
-    size = models.DecimalField(max_digits=10, decimal_places=2)  # numeric column
-    unit = models.ForeignKey('SizeUnits', models.DO_NOTHING)     # may unit_id talaga
+    size = models.DecimalField(max_digits=10, decimal_places=2)
+    unit = models.ForeignKey('SizeUnits', models.DO_NOTHING)
     price_per_unit = models.DecimalField(max_digits=10, decimal_places=2)
     created_by_admin = models.ForeignKey(AuthUser, models.DO_NOTHING)
     is_archived = models.BooleanField(db_column='is_archived', default=False)
@@ -406,8 +405,8 @@ class Withdrawals(models.Model):
         ('OTHERS', 'Others'),
     ]
     reason = models.CharField(max_length=30, choices=REASON_CHOICES)
-    date = models.DateTimeField(auto_now_add=True) 
-    created_by_admin = models.ForeignKey(User, on_delete=models.DO_NOTHING, db_column="created_by_admin_id")
+    date = models.DateTimeField(auto_now_add=True)
+    created_by_admin = models.ForeignKey(AuthUser, models.DO_NOTHING, db_column="created_by_admin_id")
     is_archived = models.BooleanField(db_column='is_archived', default=False)
 
     class Meta:

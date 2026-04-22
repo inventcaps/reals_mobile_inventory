@@ -5,15 +5,12 @@ from django.core.paginator import Paginator
 from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncMonth
 from django.http import JsonResponse, FileResponse
-from django.conf import settings
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
-import psycopg2
 from decimal import Decimal
 import logging
 from datetime import datetime
-import os
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -44,13 +41,6 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
-            # Ensure only superusers can access the mobile dashboard
-            if not user.is_superuser:
-                logger.warning(f"Blocked login for non-superuser: {username} from IP: {get_client_ip(request)}")
-                return render(request, "login.html", {
-                    "error": "Only administrator accounts are allowed to sign in on mobile."
-                })
-
             # Check if user is active
             if not user.is_active:
                 logger.warning(f"Login attempt by inactive user: {username} from IP: {get_client_ip(request)}")
@@ -308,8 +298,7 @@ def sales_list(request):
     sales_qs = Sales.objects.all().order_by('-date')
     if search_query:
         sales_qs = sales_qs.filter(
-            Q(category__icontains=search_query) 
-            # Q(description__icontains=search_query)
+            Q(category__icontains=search_query)
         )
     paginator = Paginator(sales_qs, 10)
     page_number = request.GET.get("page")
@@ -546,7 +535,6 @@ def monthly_report_data(request):
 def user_activity(request):
     """Display list of users with their login/logout activity"""
     from django.contrib.sessions.models import Session
-    from django.utils import timezone
     
     # Preload active sessions once to avoid repeated decoding and skip corrupted rows
     active_sessions = Session.objects.filter(expire_date__gte=timezone.now())
@@ -600,6 +588,9 @@ def user_activity(request):
 @require_http_methods(["GET"])
 def service_worker(request):
     """Serve service worker from project root scope"""
+    from django.conf import settings
+    import os
+    
     sw_path = os.path.join(settings.BASE_DIR, "static", "service-worker.js")
     if not os.path.exists(sw_path):
         return JsonResponse({"error": "Service worker not found"}, status=404)

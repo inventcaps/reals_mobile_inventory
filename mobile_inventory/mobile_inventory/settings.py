@@ -1,12 +1,9 @@
 from pathlib import Path
 import os
 from decouple import config, Csv
-import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -22,9 +19,6 @@ if DEBUG:
     for host in ['127.0.0.1', 'localhost']:
         if host not in ALLOWED_HOSTS:
             ALLOWED_HOSTS.append(host)
-
-# Railway-specific configuration
-RAILWAY_ENVIRONMENT = os.getenv('RAILWAY_ENVIRONMENT', 'development')
 
 # Application definition
 
@@ -72,31 +66,17 @@ WSGI_APPLICATION = 'mobile_inventory.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-if DEBUG:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': config('DB_NAME', default='postgres'),
-            'USER': config('DB_USER', default='postgres.ynmwkydtjzqppyecqhux'),
-            'PASSWORD': config('DB_PASSWORD', default='Reals_DB_123'),
-            'HOST': config('DB_HOST', default='aws-1-us-east-1.pooler.supabase.com'),
-            'PORT': config('DB_PORT', default=6543, cast=int),
-            'OPTIONS': {
-                'sslmode': 'require',
-            }
-        }
-    }
-else:
-    DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://postgres:Reals_DB_123@aws-1-us-east-1.pooler.supabase.com:6543/postgres')
+DATABASES = {
+   'default': {
+       'ENGINE': 'django.db.backends.postgresql',
+       'NAME': 'reals_local',
+       'USER': 'postgres',
+       'PASSWORD': 'admin',
+       'HOST': 'localhost',
+       'PORT': '5432',
+   }
+}
 
-    DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)
-    }
-
-    # Add SSL requirement for Supabase
-    DATABASES['default']['OPTIONS'] = {
-        'sslmode': 'require',
-    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -147,6 +127,21 @@ WHITENOISE_USE_FINDERS = True
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Password hashers - optimized for development speed (matches main system)
+if DEBUG:
+    # Fast hashing for development
+    PASSWORD_HASHERS = [
+        'django.contrib.auth.hashers.MD5PasswordHasher',  # Fast for dev
+        'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    ]
+else:
+    # Secure hashing for production
+    PASSWORD_HASHERS = [
+        'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+        'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+        'django.contrib.auth.hashers.ScryptPasswordHasher',
+    ]
 
 # Logging Configuration
 LOGGING = {
